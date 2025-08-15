@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -25,6 +26,9 @@ class SettingsController extends GetxController {
   final _dark = false.obs;
   final language = 'zh-CN'.obs;
 
+  // 添加实例ID，基于可执行文件路径
+  final instanceId = ''.obs;
+
   GetStorage storage = GetStorage();
   late String temporaryDirectory;
 
@@ -34,6 +38,11 @@ class SettingsController extends GetxController {
     getCurrentVersion().then((value) {
       GlobalVar.version = value;
     });
+
+    // 根据可执行文件路径生成实例ID
+    String executablePath = Platform.resolvedExecutable;
+    instanceId.value = storage.read('instanceId') ?? _generateInstanceId(executablePath);
+    storage.write('instanceId', instanceId.value);
 
     // 更新主题
     _dark.value = storage.read('dark') ?? _dark.value;
@@ -52,6 +61,12 @@ class SettingsController extends GetxController {
         updateLanguge(0);
     }
     super.onInit();
+  }
+
+  /// 根据可执行文件路径生成实例ID
+  String _generateInstanceId(String executablePath) {
+    // 使用可执行文件路径生成哈希值作为实例ID
+    return executablePath.hashCode.toRadixString(16);
   }
 
   /// 更新主题：如果不传入参数则使用控制器本身的
@@ -175,5 +190,16 @@ class SettingsController extends GetxController {
       printInfo(info: 'New TemporaryDirectory : $temporaryDirectory');
       storage.write('temporaryDirectory', temporaryDirectory);
     });
+  }
+  
+  // 使用实例ID作为前缀存储数据
+  String _getKeyWithInstanceId(String key) => '${instanceId.value}_$key';
+  
+  void writeAddress(String address) {
+    storage.write(_getKeyWithInstanceId('address'), address);
+  }
+  
+  String readAddress() {
+    return storage.read(_getKeyWithInstanceId('address')) ?? "";
   }
 }

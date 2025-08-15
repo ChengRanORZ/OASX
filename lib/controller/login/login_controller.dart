@@ -10,9 +10,10 @@ class LoginController extends GetxController {
 
   @override
   Future<void> onInit() async {
+    final settingsController = Get.find<SettingsController>();
     username.value = storage.read('username') ?? "";
     password.value = storage.read('password') ?? "";
-    address.value = storage.read('address') ?? "";
+    address.value = settingsController.readAddress();
 
     if (address.value.isNotEmpty && !logined) {
       logined = true;
@@ -25,7 +26,9 @@ class LoginController extends GetxController {
   Future<void> toMain({required Map<String, dynamic> data}) async {
     storage.write('username', data['username']);
     storage.write('password', data['password']);
-    storage.write('address', data['address']);
+    // 使用SettingsController存储地址
+    final settingsController = Get.find<SettingsController>();
+    settingsController.writeAddress(data['address']);
     printInfo(info: data.toString());
     await login(data['address']);
   }
