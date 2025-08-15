@@ -1,9 +1,6 @@
 on:
-  push:
-    tags: 
-        - 'v*'
-    # branches: 
-    #   - master
+  workflow_dispatch:
+    
 name: Build-Release[Windows]
 
 
