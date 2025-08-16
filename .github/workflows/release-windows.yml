@@ -1,96 +1,27 @@
 on:
   workflow_dispatch:
-    
+
 name: Build-Release[Windows]
 
-
 jobs:
-    build_and_package:
-        runs-on: windows-latest
-        # 配置环境
-        steps:
-        - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-        - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-        - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-        # 下拉仓库
-        - name: Check out repository code
-          uses: actions/checkout@v3
-        # 下载 Flutter
-        - name: Setup Flutter
-          uses: subosito/flutter-action@v2
-          with:
-            flutter-version: '3.24.3'
-            channel: 'stable'
-        - name: List files in the repository
-          if : Fasle
-          run: |
-            echo '' > ${{ secrets.OASX_RELEASE }}
-            ls ${{ github.workspace }}
-        - name: Build Window
-          if : Fasle
-          uses: DamianReeves/write-file-action@master
-          with:
-            path: ${{ secrets.WINDOWS_PATH_KEY }}
-            contents: ${{ secrets.WINDOWS_PATH_VALUES }}
-            write-mode: append
-        - run: echo "🍏 This job's status is ${{ job.status }}."
-        - run: flutter --version
-
-        - name: "Read file contents"
-          if : Fasle
-          uses: andstor/file-reader-action@v1
-          with:
-            path: ${{ secrets.WINDOWS_PATH_KEY }}
-        # 下载依赖
-        - name: Install dependencies
-          run: flutter pub get
-        # 最新的发布url
-        - name: Get latest release
-          id: get_release
-          uses: actions/github-script@v4
-          with:
-            github-token: ${{ secrets.RELEASE_TOKEN }}
-            script: |
-              const { data: releases } = await github.repos.listReleases({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-              });
-              const latestRelease = releases[0];
-              const version = latestRelease.tag_name.replace(/^v/, '') + '+1'
-              console.log(JSON.stringify(latestRelease, null, 2));
-              core.setOutput('upload_url', latestRelease.upload_url);
-              core.setOutput('tag_name', latestRelease.tag_name);
-              core.setOutput('version', version);
-        # 修改 yaml 版本号
-        - name: Update version
-          if : Fasle
-          uses: fjogeleit/yaml-update-action@main
-          with:
-            valueFile: 'pubspec.yaml'
-            propertyPath: 'version'
-            value: ${{ steps.get_release.outputs.version }}
-            commitChange: false
-        # 构建
-        - name: Build Flutter Windows app
-          id: build
-          run: flutter build windows
-        # 打包
-        - name: Package oasx
-          id: package
-          uses: actions/setup-python@v4
-          with:
-            python-version: '3.10'
-        - run: |
-            python ./script/release_windows_package.py --version ${{ steps.get_release.outputs.tag_name }}
-
-        # 发布到 Release
-        - name: Upload Release Windows
-          if : Fasle
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          with:
-            upload_url: ${{ steps.get_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-            asset_path: ./oasx_${{ steps.get_release.outputs.tag_name }}_windows.zip
-            asset_name: oasx_${{ steps.get_release.outputs.tag_name }}_windows.zip
-            asset_content_type: application/gzip
+  build_and_package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3'
+          channel: 'stable'
+      - run: flutter pub get
+      - run: flutter build windows
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: |
+          python ./script/release_windows_package.py --version 1.0.0
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: oasx-windows
+          path: ./oasx_1.0.0_windows.zip

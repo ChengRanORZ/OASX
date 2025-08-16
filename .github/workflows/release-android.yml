@@ -1,7 +1,5 @@
 on:
-  push:
-    tags:
-      - v*
+  workflow_dispatch:
 name: Build-Release[Android]
 
 jobs:
